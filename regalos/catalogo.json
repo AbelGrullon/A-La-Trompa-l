@@ -1,0 +1,234 @@
+[
+  {
+    "id": 5655,
+    "name": "Rosa",
+    "nameEn": "Rose",
+    "coins": 1,
+    "image": "rbxassetid://78391551606488",
+    "png": true
+  },
+  {
+    "id": 6064,
+    "name": "GG",
+    "nameEn": "GG",
+    "coins": 1,
+    "image": "rbxassetid://98313885470997",
+    "png": true
+  },
+  {
+    "id": 5487,
+    "name": "Corazón coreano",
+    "nameEn": "Finger Heart",
+    "coins": 5,
+    "image": "rbxassetid://105967271322438",
+    "png": true
+  },
+  {
+    "id": 105781,
+    "name": "Balón giratorio",
+    "nameEn": "Spinning Soccer",
+    "coins": 5,
+    "image": "rbxassetid://127912705718078",
+    "png": true
+  },
+  {
+    "id": 8913,
+    "name": "Rosa Élite",
+    "nameEn": "Rosa",
+    "coins": 10,
+    "image": "rbxassetid://124074653912143",
+    "png": true
+  },
+  {
+    "id": 9947,
+    "name": "Collar de amistad",
+    "nameEn": "Friendship Necklace",
+    "coins": 10,
+    "image": "rbxassetid://83141439228571",
+    "png": true
+  },
+  {
+    "id": 5658,
+    "name": "Perfume",
+    "nameEn": "Perfume",
+    "coins": 20,
+    "image": "rbxassetid://71572395101507",
+    "png": true
+  },
+  {
+    "id": 5879,
+    "name": "Rosquilla",
+    "nameEn": "Doughnut",
+    "coins": 30,
+    "image": "rbxassetid://123896768276049",
+    "png": true
+  },
+  {
+    "id": 14488,
+    "name": "Capibara",
+    "nameEn": "Capybara",
+    "coins": 30,
+    "image": "rbxassetid://75252912505558",
+    "png": true
+  },
+  {
+    "id": 5659,
+    "name": "Cisne de papel",
+    "nameEn": "Paper Crane",
+    "coins": 99,
+    "image": "rbxassetid://72311849878983",
+    "png": true
+  },
+  {
+    "id": 6427,
+    "name": "Sombrero y bigote",
+    "nameEn": "Hat and Mustache",
+    "coins": 99,
+    "image": "rbxassetid://93375599254886",
+    "png": true
+  },
+  {
+    "id": 5585,
+    "name": "Confeti con las manos",
+    "nameEn": "Confetti",
+    "coins": 100,
+    "image": "rbxassetid://125869536078101",
+    "png": true
+  },
+  {
+    "id": 5660,
+    "name": "Corazón con las manos",
+    "nameEn": "Hand Heart",
+    "coins": 100,
+    "image": "rbxassetid://71267330169900",
+    "png": true
+  },
+  {
+    "id": 6007,
+    "name": "Guantes de boxeo",
+    "nameEn": "Boxing Gloves",
+    "coins": 299,
+    "image": "rbxassetid://132103785789803",
+    "png": true
+  },
+  {
+    "id": 6267,
+    "name": "Corgi",
+    "nameEn": "Corgi",
+    "coins": 299,
+    "image": "rbxassetid://137779494088365",
+    "png": true
+  },
+  {
+    "id": 7168,
+    "name": "Pistola de dinero",
+    "nameEn": "Money Gun",
+    "coins": 500,
+    "image": "rbxassetid://137510895860523",
+    "png": true
+  },
+  {
+    "id": 5897,
+    "name": "Cisne",
+    "nameEn": "Swan",
+    "coins": 699,
+    "image": "rbxassetid://129709383410853",
+    "png": true
+  },
+  {
+    "id": 9717,
+    "name": "Caja de la suerte",
+    "nameEn": "Lucky Airdrop Box",
+    "coins": 999,
+    "image": "rbxassetid://109976711093773",
+    "png": true
+  },
+  {
+    "id": 11046,
+    "name": "Galaxia",
+    "nameEn": "Galaxy",
+    "coins": 1000,
+    "image": "rbxassetid://133811466217528",
+    "png": true
+  },
+  {
+    "id": 6090,
+    "name": "Fuegos artificiales",
+    "nameEn": "Fireworks",
+    "coins": 1088,
+    "image": "rbxassetid://89413815543571",
+    "png": true
+  },
+  {
+    "id": 12852,
+    "name": "Nave de nivel",
+    "nameEn": "Level Ship",
+    "coins": 1500,
+    "image": "rbxassetid://91399595679641",
+    "png": true
+  },
+  {
+    "id": 14658,
+    "name": "Corazón en flor",
+    "nameEn": "Blooming Heart",
+    "coins": 1599,
+    "image": "rbxassetid://124365891024704",
+    "png": true
+  },
+  {
+    "id": 5767,
+    "name": "Jet privado",
+    "nameEn": "Private Jet",
+    "coins": 4888,
+    "image": "rbxassetid://124501401756322",
+    "png": true
+  },
+  {
+    "id": 6089,
+    "name": "Coche deportivo",
+    "nameEn": "Sports Car",
+    "coins": 7000,
+    "image": "rbxassetid://100800526294882",
+    "png": true
+  },
+  {
+    "id": 6149,
+    "name": "Interestelar",
+    "nameEn": "Interstellar",
+    "coins": 10000,
+    "image": "rbxassetid://83282231350532",
+    "png": true
+  },
+  {
+    "id": 6369,
+    "name": "León",
+    "nameEn": "Lion",
+    "coins": 29999,
+    "image": "rbxassetid://138636868226536",
+    "png": true
+  },
+  {
+    "id": 10065,
+    "name": "Gorila",
+    "nameEn": "Gorilla",
+    "coins": 30000,
+    "image": "rbxassetid://112809372341913",
+    "png": true
+  },
+  {
+    "id": 7312,
+    "name": "TikTok Universe+",
+    "nameEn": "TikTok Universe+",
+    "coins": 34999,
+    "image": "rbxassetid://101960992729402",
+    "png": true
+  },
+  {
+    "id": 9072,
+    "name": "TikTok Universe",
+    "nameEn": "TikTok Universe",
+    "coins": 44999,
+    "image": "rbxassetid://132520646090963",
+    "png": true
+  }
+]

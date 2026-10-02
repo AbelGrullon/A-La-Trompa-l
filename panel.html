@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Panel — ¡A la trompa!</title>
+<style>
+	:root {
+		--bg: #0b0b10;
+		--card: #13131b;
+		--card2: #1b1b26;
+		--line: #2a2a38;
+		--text: #ececf4;
+		--muted: #9a9ab0;
+		--accent: #78c8ff;
+		--hero: #ffcd28;
+		--villain: #aa4beb;
+		--good: #5adc8c;
+		--bad: #ff5a5a;
+	}
+	* { box-sizing: border-box; }
+	body {
+		margin: 0;
+		min-height: 100vh;
+		background: radial-gradient(circle at top, #181826, var(--bg));
+		font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+		color: var(--text);
+		padding: 20px 16px 60px;
+	}
+	header {
+		max-width: 1400px;
+		margin: 0 auto 18px;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 12px;
+		align-items: center;
+		justify-content: space-between;
+	}
+	h1 {
+		margin: 0;
+		font-size: 22px;
+		background: linear-gradient(90deg, var(--villain), var(--accent), var(--hero));
+		-webkit-background-clip: text;
+		background-clip: text;
+		color: transparent;
+	}
+	.pills { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+	.pill {
+		font-size: 12px;
+		padding: 6px 10px;
+		border-radius: 999px;
+		background: var(--card2);
+		border: 1px solid var(--line);
+		color: var(--muted);
+	}
+	.pill.on { color: var(--good); border-color: #2e6b47; }
+	.pill.off { color: var(--bad); border-color: #6b2e2e; }
+	input, select, textarea {
+		background: var(--card2);
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		padding: 9px 11px;
+		color: var(--text);
+		font-size: 14px;
+		font-family: inherit;
+		width: 100%;
+	}
+	.grid {
+		max-width: 1400px;
+		margin: 0 auto;
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+		gap: 16px;
+	}
+	.card {
+		background: var(--card);
+		border: 1px solid var(--line);
+		border-radius: 14px;
+		padding: 18px;
+	}
+	.card h2 {
+		margin: 0 0 12px;
+		font-size: 13px;
+		letter-spacing: .06em;
+		text-transform: uppercase;
+		color: var(--accent);
+	}
+	label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 5px; }
+	.row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+	.row > * { flex: 1 1 0; min-width: 0; }
+	button {
+		border: 1px solid #ffffff14;
+		border-radius: 8px;
+		padding: 10px 8px;
+		background: var(--card2);
+		color: var(--text);
+		font-weight: 700;
+		font-size: 13px;
+		cursor: pointer;
+		font-family: inherit;
+	}
+	button:hover { filter: brightness(1.25); }
+	button:active { transform: scale(.97); }
+	button.hero { background: #5c4600; }
+	button.villain { background: #45205e; }
+	button.pink { background: #6b1d45; }
+	button.danger { background: #5a1c1c; }
+	button.go { background: #1d5a3b; }
+	button.sel { background: var(--accent); color: #0b0b10; }
+	.gifts { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; margin-top: 8px; }
+	.gifts button { text-align: left; font-weight: 600; font-size: 12px; line-height: 1.3; }
+	.gifts small { display: block; color: var(--muted); font-weight: 500; }
+	.wide { grid-column: 1 / -1; }
+	table { width: 100%; border-collapse: collapse; font-size: 13px; }
+	th { text-align: left; color: var(--muted); font-size: 11px; text-transform: uppercase; padding: 6px; }
+	td { padding: 6px; border-top: 1px solid var(--line); }
+	.ok { color: var(--good); }
+	.no { color: var(--bad); }
+	#toast {
+		position: fixed;
+		left: 50%;
+		bottom: 18px;
+		transform: translateX(-50%);
+		background: var(--card2);
+		border: 1px solid var(--line);
+		padding: 10px 16px;
+		border-radius: 999px;
+		font-size: 13px;
+		opacity: 0;
+		transition: opacity .25s;
+		pointer-events: none;
+		max-width: calc(100% - 32px);
+	}
+	#toast.show { opacity: 1; }
+	.hint { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+	input[type=range] { padding: 0; }
+	.gifts button img { width: 26px; height: 26px; object-fit: contain; float: left; margin-right: 6px; }
+	/* Editor de regalos por peleador */
+	.teams { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 14px; margin-top: 10px; }
+	.team h3 { margin: 0 0 8px; font-size: 14px; }
+	.team.hero h3 { color: var(--hero); }
+	.team.villain h3 { color: var(--villain); }
+	.role { display: flex; gap: 10px; align-items: center; padding: 8px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 6px; background: var(--card2); }
+	.role .name { width: 150px; flex: none; font-size: 12px; font-weight: 700; }
+	.role .name small { display: block; color: var(--muted); font-weight: 500; }
+	.role .chips { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; align-items: center; }
+	.chip { display: flex; align-items: center; gap: 6px; padding: 4px 6px 4px 4px; border-radius: 999px; background: #0f0f16; border: 1px solid var(--line); font-size: 12px; }
+	.chip img { width: 28px; height: 28px; object-fit: contain; }
+	.chip small { color: var(--muted); }
+	.chip button { padding: 2px 7px; border-radius: 999px; font-size: 11px; background: #3a1c1c; }
+	.chips .add { padding: 6px 10px; font-size: 12px; border-style: dashed; background: transparent; }
+	.empty { color: var(--bad); font-size: 12px; }
+	#dirty { color: var(--hero); font-size: 12px; display: none; }
+	#picker { position: fixed; inset: 0; background: #000a; display: none; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
+	#picker.show { display: flex; }
+	#picker .box { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; width: min(760px, 100%); max-height: 85vh; overflow: auto; }
+	#picker .catalog { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; margin-top: 10px; }
+	#picker .catalog button { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 8px 4px; }
+	#picker .catalog img { width: 56px; height: 56px; object-fit: contain; }
+	#picker .catalog small { color: var(--muted); font-weight: 500; }
+	#picker .catalog button.used { opacity: .45; }
+	#picker .catalog button.mine { outline: 2px solid var(--good); }
+</style>
+</head>
+<body>
+	<header>
+		<h1>🥊 ¡A LA TROMPA! — PANEL</h1>
+		<div class="pills">
+			<span class="pill" id="pillTik">Tikfinity …</span>
+			<span class="pill" id="pillRoblox">Roblox …</span>
+			<input type="password" id="token" placeholder="ACCESS_TOKEN" style="width:190px" />
+		</div>
+	</header>
+
+	<div class="grid">
+		<div class="card">
+			<h2>Simular espectador</h2>
+			<label>Nombre de TikTok</label>
+			<input id="simName" value="Tester" />
+			<div class="row">
+				<button class="hero" data-act='{"action":"simJoin","team":"hero"}'>🧪 Meter HÉROE</button>
+				<button class="villain" data-act='{"action":"simJoin","team":"villain"}'>🧪 Meter VILLANO</button>
+				<button data-act='{"action":"simJoin"}'>🎲 Auto</button>
+			</div>
+			<div class="row">
+				<button data-act='{"action":"simBots","count":4}'>🤖 +4 bots</button>
+				<button data-act='{"action":"simBots","count":8}'>🤖 +8 bots</button>
+				<button data-act='{"action":"simBots","count":20}'>🤖 +20 bots</button>
+			</div>
+			<div class="row">
+				<button class="pink" data-act='{"action":"simLikes","count":50}'>❤ +50</button>
+				<button class="pink" data-act='{"action":"simLikes","count":250}'>❤ +250</button>
+				<button class="pink" data-act='{"action":"simLikes","count":1000}'>❤ +1000</button>
+			</div>
+			<div class="row">
+				<button data-act='{"action":"simFollow"}'>💖 Seguir</button>
+			</div>
+			<div class="row">
+				<button class="hero" data-act='{"action":"testEntrance","kind":"elite"}'>🎬 Entrada ÉLITE</button>
+				<button class="villain" data-act='{"action":"testEntrance","kind":"definitive"}'>🎬 Entrada DEFINITIVA</button>
+			</div>
+		</div>
+
+		<div class="card">
+			<h2>Simular regalo</h2>
+			<label>Cantidad (combo)</label>
+			<input id="giftCount" type="number" min="1" max="100" value="1" />
+			<div class="gifts" id="gifts"></div>
+			<div class="row">
+				<button data-act='{"action":"simGift","giftId":1,"giftName":"Regalo sorpresa","diamonds":5}'>🎁 Otro regalo (5💎) — te mete a pelear o te cura</button>
+			</div>
+		</div>
+
+		<div class="card">
+			<h2>Eventos</h2>
+			<div class="row">
+				<button class="hero" data-act='{"action":"rain","kind":"gold"}'>🌟 Lluvia dorada</button>
+				<button class="villain" data-act='{"action":"rain","kind":"dark"}'>🌑 Lluvia oscura</button>
+			</div>
+			<div class="row">
+				<button style="background:#6b3010" data-act='{"action":"fury"}'>🔥 Modo FURIA</button>
+				<button class="pink" data-act='{"action":"hearts"}'>💖 Lluvia de corazones</button>
+			</div>
+			<div class="row">
+				<button data-act='{"action":"chargeAll"}'>⚡ Súper a todos</button>
+				<button data-act='{"action":"healAll"}'>❤ Curar a todos</button>
+				<button class="danger" data-act='{"action":"koRandom"}'>💀 K.O. al azar</button>
+			</div>
+			<label>Anuncio grande en pantalla</label>
+			<div class="row">
+				<input id="announceText" placeholder="Ej: ¡20 likes más y se viene la FURIA!" style="flex:3" />
+				<button class="go" id="announceBtn">📢</button>
+			</div>
+		</div>
+
+		<div class="card">
+			<h2>Arena</h2>
+			<div class="row">
+				<button class="danger" data-act='{"action":"setSetting","key":"Paused","value":true}'>⏸ Pausar</button>
+				<button class="go" data-act='{"action":"setSetting","key":"Paused","value":false}'>▶ Reanudar</button>
+			</div>
+			<label>Peleadores en el ring: <b id="maxFightersVal">8</b></label>
+			<input type="range" id="maxFighters" min="2" max="8" step="1" value="8" />
+			<label>Likes por meta: <b id="likeGoalVal">1000</b></label>
+			<input type="range" id="likeGoal" min="100" max="10000" step="100" value="1000" />
+			<label>Reseteos</label>
+			<div class="row">
+				<button class="danger" data-act='{"action":"resetFighters"}'>Peleadores</button>
+				<button class="danger" data-act='{"action":"resetQueue"}'>Cola</button>
+				<button class="danger" data-act='{"action":"resetScore"}'>Marcador</button>
+				<button class="danger" data-act='{"action":"resetAll"}'>TODO</button>
+			</div>
+		</div>
+
+		<div class="card">
+			<h2>Mensaje del título</h2>
+			<div id="presets"></div>
+			<label>Mensaje personalizado</label>
+			<div class="row">
+				<input id="customMsg" placeholder="Escribe un mensaje..." style="flex:3" />
+				<button class="go" id="customMsgBtn">✔</button>
+			</div>
+		</div>
+
+		<div class="card">
+			<h2>Pantalla</h2>
+			<label>Diseño del HUD</label>
+			<div class="row" data-setting="HudLayout">
+				<button data-value="Auto">🔁 Auto</button>
+				<button data-value="Horizontal">🖥 Horizontal</button>
+				<button data-value="Vertical">📱 Vertical</button>
+			</div>
+			<label>Tamaño del HUD: <b id="hudScaleVal">1.00</b></label>
+			<input type="range" id="hudScale" min="0.4" max="2" step="0.05" value="1" />
+			<label>Cámara</label>
+			<div class="row" data-setting="CameraMode">
+				<button data-value="Director">🎬 Director</button>
+				<button data-value="Orbita">🔄 Órbita</button>
+				<button data-value="General">🏟 General</button>
+				<button data-value="Accion">🥊 Acción</button>
+			</div>
+			<div class="row" data-setting="CameraMode">
+				<button data-value="Cenital">⬇ Cenital</button>
+				<button data-value="Cinematica">🎞 Cinemática</button>
+				<button data-value="Libre">🎮 Libre</button>
+			</div>
+			<label>Iluminación</label>
+			<div class="row" data-setting="LightingPreset">
+				<button data-value="Original">☀ Original</button>
+				<button data-value="Atardecer">🌅 Atardecer</button>
+				<button data-value="Noche">🌙 Noche</button>
+				<button data-value="Neon">🟣 Neón</button>
+			</div>
+			<p class="hint">Todo lo demás (márgenes, sonido, qué paneles se ven) está en el panel dev del juego: tecla F2.</p>
+		</div>
+
+		<div class="card wide">
+			<h2>🎁 Regalos de cada peleador</h2>
+			<p class="hint">Elige qué regalos de TikTok convierten a alguien en cada tipo de peleador (o lanzan una lluvia). Puedes poner varios regalos en el mismo puesto; un regalo solo puede estar en un puesto. Los que no estén en ninguno curan o te meten a pelear. Lista de regalos = la misma de "A Correr".</p>
+			<div class="row" style="max-width:640px">
+				<button class="go" id="saveRoles">💾 Guardar en el juego</button>
+				<button id="reloadRoles">↻ Recargar</button>
+				<button class="danger" id="defaultRoles">↺ Restaurar originales</button>
+			</div>
+			<p id="dirty">● Hay cambios sin guardar</p>
+			<div class="teams">
+				<div class="team hero"><h3>🦸 HÉROES</h3><div id="rolesHero"></div></div>
+				<div class="team villain"><h3>🦹 VILLANOS</h3><div id="rolesVillain"></div></div>
+			</div>
+		</div>
+
+		<div class="card wide">
+			<h2>Regalos vistos en el live</h2>
+			<p class="hint">Se llena solo con cada regalo real (tenga o no efecto en el juego). Útil para descubrir IDs nuevos.</p>
+			<div class="row"><button id="refreshGifts">↻ Refrescar</button></div>
+			<div id="giftLog" style="margin-top:12px"></div>
+		</div>
+	</div>
+
+	<div id="toast"></div>
+
+	<div id="picker">
+		<div class="box">
+			<div class="row" style="margin:0;align-items:center">
+				<b id="pickerTitle" style="flex:3"></b>
+				<button id="pickerClose" style="flex:0 0 auto">✕ Cerrar</button>
+			</div>
+			<p class="hint">Toca un regalo para ponerlo en este puesto (si ya estaba en otro, se mueve aquí).</p>
+			<div class="catalog" id="pickerCatalog"></div>
+		</div>
+	</div>
+
+<script>
+	// Qué hace cada puesto (los efectos viven en el juego: Shared.TIERS)
+	const ROLE_INFO = {
+		hero1: '+50% ❤ +10% 👊', hero2: '+75% ❤ +25% 👊', hero3: '+100% ❤ +35% 👊 · 🎬 entrada Élite',
+		hero4: '+125% ❤ +45% 👊 +25% ⚡ · 🎬 Élite', hero5: '+150% ❤ +55% 👊 +50% ⚡ · 🎬 Definitiva', rainGold: '45 guantes que dañan villanos',
+		villain1: '+50% ❤ +10% 👊', villain2: '+75% ❤ +25% 👊', villain3: '+100% ❤ +35% 👊 · 🎬 entrada Élite',
+		villain4: '+125% ❤ +45% 👊 +25% ⚡ · 🎬 Élite', villain5: '+150% ❤ +55% 👊 +50% ⚡ · 🎬 Definitiva', rainDark: '45 guantes que dañan héroes',
+	};
+	let giftCatalog = [];      // regalos que se pueden elegir (catálogo de A Correr)
+	let catalogById = new Map();
+	let roleList = [];         // [{ id, label }]
+	let roles = {};            // rol -> [ids] (lo que se ve en pantalla)
+	let defaultRoles = {};
+	let pickingRole = null;
+	const PRESETS = [
+		'🥊 DALE LIKE, SIGUE O ENVÍA UN REGALO PARA PELEAR',
+		'🎁 CADA REGALO TE HACE MÁS FUERTE — ¡Y TE SALTAS LA FILA!',
+		'❤ DALE LIKES: TE METEN AL RING, CURAN Y LLENAN LA META',
+		'🌧 CISNE = LLUVIA DORADA • SOMBRERO = LLUVIA OSCURA',
+		'🔥 ¿QUIÉN GANA HOY? ¡HÉROES O VILLANOS!',
+		'👑 ÉLITE Y DEFINITIVO ENTRAN AL RING CON ENTRADA DE CINE',
+	];
+
+	const tokenInput = document.getElementById('token');
+	const params = new URLSearchParams(location.search);
+	// El bridge pone aquí el token guardado cuando el panel se abre desde este PC (así no se escribe nunca)
+	const INJECTED_TOKEN = "__TOKEN__";
+	try {
+		tokenInput.value = params.get('token') || (INJECTED_TOKEN !== '__TOKEN__' && INJECTED_TOKEN) || localStorage.getItem('arenaToken') || '';
+	} catch (e) {}
+	if (INJECTED_TOKEN !== '__TOKEN__' && INJECTED_TOKEN) {
+		tokenInput.style.display = 'none';
+	}
+	tokenInput.addEventListener('input', () => {
+		try { localStorage.setItem('arenaToken', tokenInput.value.trim()); } catch (e) {}
+	});
+
+	let toastTimer;
+	function toast(text, ok = true) {
+		const el = document.getElementById('toast');
+		el.textContent = text;
+		el.style.color = ok ? 'var(--good)' : 'var(--bad)';
+		el.classList.add('show');
+		clearTimeout(toastTimer);
+		toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+	}
+
+	function escapeHtml(text) {
+		return String(text).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+	}
+
+	function headers() {
+		return { 'Content-Type': 'application/json', 'x-access-token': tokenInput.value.trim() };
+	}
+
+	async function admin(body) {
+		try {
+			const res = await fetch('/admin', { method: 'POST', headers: headers(), body: JSON.stringify(body) });
+			const data = await res.json();
+			if (!res.ok) {
+				toast(data.error || 'Error', false);
+				return false;
+			}
+			toast('✅ Enviado al juego: ' + body.action);
+			return true;
+		} catch (err) {
+			toast('No se pudo conectar con el bridge', false);
+			return false;
+		}
+	}
+
+	function simName() {
+		return document.getElementById('simName').value.trim() || 'Tester';
+	}
+
+	function setSetting(key, value) {
+		return admin({ action: 'setSetting', key, value });
+	}
+
+	// Botones con data-act (acciones simples)
+	document.querySelectorAll('[data-act]').forEach((btn) => {
+		btn.addEventListener('click', () => {
+			const body = JSON.parse(btn.dataset.act);
+			if (body.action.startsWith('sim') || body.action === 'rain') body.name = simName();
+			if (body.action === 'simGift') body.count = Number(document.getElementById('giftCount').value) || 1;
+			admin(body);
+		});
+	});
+
+	// ===== REGALOS DE CADA PELEADOR =====
+	function giftImg(gift) {
+		return gift && gift.png ? '<img src="/regalos/img/' + gift.id + '.png" alt="">' : '';
+	}
+	function roleLabel(roleId) {
+		const role = roleList.find((r) => r.id === roleId);
+		return role ? role.label : roleId;
+	}
+	function roleOfGift(giftId) {
+		return Object.keys(roles).find((r) => roles[r].includes(giftId)) || null;
+	}
+	function setDirty(on) {
+		document.getElementById('dirty').style.display = on ? 'block' : 'none';
+	}
+
+	// Botones de "Simular regalo": los regalos que están en algún puesto
+	function renderSimGifts() {
+		const giftsEl = document.getElementById('gifts');
+		giftsEl.innerHTML = '';
+		roleList.forEach((role) => {
+			(roles[role.id] || []).forEach((id) => {
+				const gift = catalogById.get(id);
+				if (!gift) return;
+				const btn = document.createElement('button');
+				btn.className = role.id.startsWith('villain') || role.id === 'rainDark' ? 'villain' : 'hero';
+				btn.innerHTML = giftImg(gift) + escapeHtml(gift.name) + '<small>' + escapeHtml(role.label) + ' · ' + id + '</small>';
+				btn.addEventListener('click', () => {
+					admin({ action: 'simGift', name: simName(), giftId: id, giftName: gift.name, count: Number(document.getElementById('giftCount').value) || 1 });
+				});
+				giftsEl.appendChild(btn);
+			});
+		});
+	}
+
+	function renderRoles() {
+		const containers = { hero: document.getElementById('rolesHero'), villain: document.getElementById('rolesVillain') };
+		containers.hero.innerHTML = '';
+		containers.villain.innerHTML = '';
+		roleList.forEach((role) => {
+			const team = role.id.startsWith('villain') || role.id === 'rainDark' ? 'villain' : 'hero';
+			const row = document.createElement('div');
+			row.className = 'role';
+			row.innerHTML = '<div class="name">' + escapeHtml(role.label) + '<small>' + escapeHtml(ROLE_INFO[role.id] || '') + '</small></div>';
+			const chips = document.createElement('div');
+			chips.className = 'chips';
+			const list = roles[role.id] || [];
+			if (!list.length) chips.innerHTML = '<span class="empty">Sin regalo</span>';
+			list.forEach((id) => {
+				const gift = catalogById.get(id) || { id, name: String(id), coins: 0 };
+				const chip = document.createElement('span');
+				chip.className = 'chip';
+				chip.innerHTML = giftImg(gift) + escapeHtml(gift.name) + ' <small>' + gift.coins + '🪙</small>';
+				const remove = document.createElement('button');
+				remove.textContent = '✕';
+				remove.title = 'Quitar';
+				remove.addEventListener('click', () => {
+					roles[role.id] = roles[role.id].filter((g) => g !== id);
+					setDirty(true);
+					renderRoles();
+				});
+				chip.appendChild(remove);
+				chips.appendChild(chip);
+			});
+			if (list.length < 6) {
+				const add = document.createElement('button');
+				add.className = 'add';
+				add.textContent = '＋ Añadir';
+				add.addEventListener('click', () => openPicker(role.id));
+				chips.appendChild(add);
+			}
+			row.appendChild(chips);
+			containers[team].appendChild(row);
+		});
+		renderSimGifts();
+	}
+
+	function openPicker(roleId) {
+		pickingRole = roleId;
+		document.getElementById('pickerTitle').textContent = 'Regalo para: ' + roleLabel(roleId);
+		const box = document.getElementById('pickerCatalog');
+		box.innerHTML = '';
+		giftCatalog.forEach((gift) => {
+			const owner = roleOfGift(gift.id);
+			const btn = document.createElement('button');
+			if (owner === roleId) btn.className = 'mine';
+			else if (owner) btn.className = 'used';
+			btn.innerHTML = giftImg(gift) + escapeHtml(gift.name) + '<small>' + gift.coins + ' 🪙 · ' + gift.id + '</small>' +
+				(owner && owner !== roleId ? '<small>en ' + escapeHtml(roleLabel(owner)) + '</small>' : '');
+			btn.addEventListener('click', () => {
+				if (owner === roleId) return closePicker();
+				if (owner) roles[owner] = roles[owner].filter((g) => g !== gift.id);
+				roles[roleId] = [...(roles[roleId] || []), gift.id];
+				setDirty(true);
+				renderRoles();
+				closePicker();
+			});
+			box.appendChild(btn);
+		});
+		document.getElementById('picker').classList.add('show');
+	}
+	function closePicker() {
+		document.getElementById('picker').classList.remove('show');
+		pickingRole = null;
+	}
+	document.getElementById('pickerClose').addEventListener('click', closePicker);
+	document.getElementById('picker').addEventListener('click', (e) => {
+		if (e.target.id === 'picker') closePicker();
+	});
+
+	async function loadRoles() {
+		try {
+			const res = await fetch('/gifts/roles', { headers: headers() });
+			const data = await res.json();
+			if (!res.ok) return toast(data.error || 'Error', false);
+			giftCatalog = data.catalog || [];
+			catalogById = new Map(giftCatalog.map((g) => [g.id, g]));
+			roleList = data.roleList || [];
+			roles = data.roles || {};
+			defaultRoles = data.defaults || {};
+			setDirty(false);
+			renderRoles();
+		} catch (err) {
+			toast('No se pudo conectar con el bridge', false);
+		}
+	}
+
+	document.getElementById('saveRoles').addEventListener('click', async () => {
+		try {
+			const res = await fetch('/gifts/roles', { method: 'POST', headers: headers(), body: JSON.stringify({ roles }) });
+			const data = await res.json();
+			if (!res.ok) return toast(data.error || 'Error', false);
+			roles = data.roles;
+			setDirty(false);
+			renderRoles();
+			toast('✅ Regalos guardados y enviados al juego');
+		} catch (err) {
+			toast('No se pudo conectar con el bridge', false);
+		}
+	});
+	document.getElementById('reloadRoles').addEventListener('click', loadRoles);
+	document.getElementById('defaultRoles').addEventListener('click', () => {
+		roles = JSON.parse(JSON.stringify(defaultRoles));
+		setDirty(true);
+		renderRoles();
+		toast('Originales puestos: toca 💾 Guardar para aplicarlos');
+	});
+	tokenInput.addEventListener('change', loadRoles);
+	loadRoles();
+
+	// Anuncio
+	document.getElementById('announceBtn').addEventListener('click', () => {
+		const text = document.getElementById('announceText').value.trim();
+		if (!text) return toast('Escribe el anuncio primero', false);
+		admin({ action: 'announce', text });
+	});
+
+	// Mensajes
+	const presetsEl = document.getElementById('presets');
+	PRESETS.forEach((msg) => {
+		const btn = document.createElement('button');
+		btn.textContent = msg;
+		btn.style.cssText = 'display:block;width:100%;text-align:left;margin-bottom:6px;font-weight:600;font-size:12px';
+		btn.addEventListener('click', () => setSetting('Message', msg));
+		presetsEl.appendChild(btn);
+	});
+	document.getElementById('customMsgBtn').addEventListener('click', () => {
+		const text = document.getElementById('customMsg').value.trim();
+		if (!text) return toast('Escribe un mensaje primero', false);
+		setSetting('Message', text);
+	});
+
+	// Selectores de ajustes (botones)
+	document.querySelectorAll('[data-setting]').forEach((row) => {
+		row.querySelectorAll('button').forEach((btn) => {
+			btn.addEventListener('click', async () => {
+				if (await setSetting(row.dataset.setting, btn.dataset.value)) {
+					document.querySelectorAll('[data-setting="' + row.dataset.setting + '"] button').forEach((b) => b.classList.remove('sel'));
+					btn.classList.add('sel');
+				}
+			});
+		});
+	});
+
+	// Deslizadores
+	function bindRange(id, key, format) {
+		const input = document.getElementById(id);
+		const label = document.getElementById(id + 'Val');
+		input.addEventListener('input', () => { label.textContent = format(input.value); });
+		input.addEventListener('change', () => setSetting(key, Number(input.value)));
+	}
+	bindRange('maxFighters', 'MaxFighters', (v) => v);
+	bindRange('likeGoal', 'LikeGoal', (v) => v);
+	bindRange('hudScale', 'HudScale', (v) => Number(v).toFixed(2));
+
+	// Registro de regalos
+	document.getElementById('refreshGifts').addEventListener('click', async () => {
+		try {
+			const res = await fetch('/admin/gift-log', { headers: headers() });
+			const data = await res.json();
+			if (!res.ok) return toast(data.error || 'Error', false);
+			const container = document.getElementById('giftLog');
+			if (!data.gifts.length) {
+				container.innerHTML = '<p class="hint">Todavía no llegó ningún regalo.</p>';
+				return;
+			}
+			let html = '<table><tr><th>ID</th><th>Nombre(s)</th><th>Veces</th><th>Última vez</th><th>¿En el juego?</th></tr>';
+			data.gifts.forEach((g) => {
+				html += '<tr><td>' + g.giftId + '</td><td>' + escapeHtml(g.names.join(', ') || '—') + '</td><td>' + g.count +
+					'</td><td>' + (g.lastSeen ? new Date(g.lastSeen).toLocaleTimeString() : '—') + '</td><td>' +
+					(g.knownTier ? '<span class="ok">✅ ' + escapeHtml(g.knownTier) + '</span>' : '<span class="no">Cura / te mete a pelear</span>') +
+					'</td></tr>';
+			});
+			container.innerHTML = html + '</table>';
+		} catch (err) {
+			toast('No se pudo conectar con el bridge', false);
+		}
+	});
+
+	// Estado (cada 2 s)
+	async function refreshStatus() {
+		try {
+			const res = await fetch('/status');
+			const data = await res.json();
+			const tik = document.getElementById('pillTik');
+			const rob = document.getElementById('pillRoblox');
+			tik.textContent = data.connectedToTikfinity ? '🟢 Tikfinity' : '🔴 Tikfinity';
+			tik.className = 'pill ' + (data.connectedToTikfinity ? 'on' : 'off');
+			rob.textContent = data.robloxConnected ? '🟢 Roblox conectado' : '🔴 Roblox sin conectar';
+			rob.className = 'pill ' + (data.robloxConnected ? 'on' : 'off');
+		} catch (err) {
+			document.getElementById('pillTik').textContent = '⚠️ Bridge apagado';
+		}
+	}
+	refreshStatus();
+	setInterval(refreshStatus, 2000);
+</script>
+</body>
+</html>
