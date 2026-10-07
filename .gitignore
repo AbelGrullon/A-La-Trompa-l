@@ -1,0 +1,9 @@
+# Secretos y archivos locales
+.env
+**/.env
+*.log
+node_modules/
+*.rbxl.lock
+*.rbxlx.lock
+*.tmp
+
