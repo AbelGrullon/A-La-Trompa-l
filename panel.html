@@ -295,6 +295,48 @@
 		</div>
 
 		<div class="card wide">
+			<h2>⚔️ Modo batalla (batallas de TikTok)</h2>
+			<p class="hint">En modo Batalla, cuando haces una batalla en TikTok el ring se vacía y pelean tu campeón (dorado) contra el del otro streamer (morado). Cada vez que un lado recibe puntos, su campeón golpea; con más puntos le sale fuego y humo. Nadie cae hasta que TikTok termina la batalla: el ganador lanza el ATAQUE FINAL. Los regalos de tu live hacen ataques especiales (según su nivel en "Regalos de cada peleador"). El otro streamer, si tiene el juego, ve la misma pelea desde su lado.</p>
+			<p id="battleStatus" class="hint" style="font-weight:700;color:var(--text)">Sin batalla</p>
+			<div class="row" style="max-width:640px" data-setting="GameMode">
+				<button data-value="Solo">🥊 Solo</button>
+				<button data-value="Batalla">⚔️ Batalla</button>
+			</div>
+			<label>Tu @usuario de TikTok (opcional: para saber cuál de los dos eres)</label>
+			<div class="row" style="max-width:640px">
+				<input id="battleMe" placeholder="@tu_usuario" style="flex:3" />
+				<button class="go" id="battleMeBtn">✔</button>
+				<button data-act='{"action":"setSetting","key":"BattleSwap","value":true}'>🔄 Cambiar lados</button>
+				<button data-act='{"action":"setSetting","key":"BattleSwap","value":false}'>↩ Lados normales</button>
+			</div>
+			<label>Probar sin live (pasa por el mismo lector que una batalla de verdad)</label>
+			<div class="row" style="max-width:640px">
+				<button class="danger" data-battle='{"action":"start"}'>⚔️ Empezar batalla de prueba</button>
+			</div>
+			<div class="row" style="max-width:640px">
+				<button class="hero" data-battle='{"action":"points","side":"me","amount":10}'>🦸 +10</button>
+				<button class="hero" data-battle='{"action":"points","side":"me","amount":100}'>🦸 +100</button>
+				<button class="hero" data-battle='{"action":"points","side":"me","amount":1000}'>🦸 +1000</button>
+				<button class="villain" data-battle='{"action":"points","side":"rival","amount":10}'>🦹 +10</button>
+				<button class="villain" data-battle='{"action":"points","side":"rival","amount":100}'>🦹 +100</button>
+				<button class="villain" data-battle='{"action":"points","side":"rival","amount":1000}'>🦹 +1000</button>
+			</div>
+			<div class="row" style="max-width:640px">
+				<button data-act='{"action":"simBattleGift","level":1}'>Regalo Nv1</button>
+				<button data-act='{"action":"simBattleGift","level":3}'>Regalo Nv3</button>
+				<button data-act='{"action":"simBattleGift","level":5}'>Regalo Nv5</button>
+				<button data-act='{"action":"simBattleGift","level":6}'>🌧 Lluvia</button>
+			</div>
+			<label>Terminar (ataque final). También sirve en una batalla real si TikTok no avisara del final.</label>
+			<div class="row" style="max-width:640px">
+				<button data-battle='{"action":"end"}'>📊 Terminar por puntos</button>
+				<button class="hero" data-battle-end="me">🏆 Gano yo</button>
+				<button class="villain" data-battle-end="rival">💀 Gana el rival</button>
+				<button data-battle-end="tie">🤝 Empate</button>
+			</div>
+		</div>
+
+		<div class="card wide">
 			<h2>🎁 Regalos de cada peleador</h2>
 			<p class="hint">Elige qué regalos de TikTok convierten a alguien en cada tipo de peleador (o lanzan una lluvia). Puedes poner varios regalos en el mismo puesto; un regalo solo puede estar en un puesto. Los que no estén en ninguno curan o te meten a pelear. Lista de regalos = la misma de "A Correr".</p>
 			<div class="row" style="max-width:640px">
@@ -654,6 +696,58 @@
 	}
 	refreshStatus();
 	setInterval(refreshStatus, 2000);
+
+	// ===== MODO BATALLA =====
+	async function battleCall(url, body) {
+		try {
+			const res = await fetch(url, { method: 'POST', headers: headers(), body: JSON.stringify(body || {}) });
+			const data = await res.json();
+			if (!res.ok) {
+				toast(data.error || 'Error', false);
+				return false;
+			}
+			refreshBattle();
+			return true;
+		} catch (err) {
+			toast('No se pudo conectar con el bridge', false);
+			return false;
+		}
+	}
+	document.querySelectorAll('[data-battle]').forEach((btn) => {
+		btn.addEventListener('click', async () => {
+			const body = JSON.parse(btn.dataset.battle);
+			if (body.action === 'start') {
+				await setSetting('GameMode', 'Batalla'); // (la batalla solo se pelea en modo Batalla)
+				body.meName = simName();
+			}
+			if (await battleCall('/battle/sim', body)) toast('⚔️ ' + btn.textContent.trim());
+		});
+	});
+	document.querySelectorAll('[data-battle-end]').forEach((btn) => {
+		btn.addEventListener('click', async () => {
+			if (await battleCall('/battle/end', { winner: btn.dataset.battleEnd })) toast('🏁 Batalla terminada');
+		});
+	});
+	document.getElementById('battleMeBtn').addEventListener('click', () => {
+		setSetting('BattleMe', document.getElementById('battleMe').value.trim());
+	});
+
+	async function refreshBattle() {
+		try {
+			const res = await fetch('/battle/status', { headers: headers() });
+			if (!res.ok) return;
+			const b = await res.json();
+			const el = document.getElementById('battleStatus');
+			if (!b.id) {
+				el.textContent = 'Sin batalla todavía. Cuando hagas una batalla en TikTok aparecerá aquí.';
+			} else {
+				const state = b.active ? '⚔️ EN CURSO' : b.winner === 'me' ? '🏆 Ganaste' : b.winner === 'rival' ? '💀 Ganó el rival' : b.winner === 'tie' ? '🤝 Empate' : 'Terminada';
+				el.textContent = `${state} — ${b.me.name}: ${b.me.points}  vs  ${b.rival.name}: ${b.rival.points}`;
+			}
+		} catch (err) {}
+	}
+	refreshBattle();
+	setInterval(refreshBattle, 2000);
 </script>
 </body>
 </html>

@@ -139,6 +139,7 @@ function handleGift(data) {
 	const giftType = data?.giftType === undefined ? undefined : Number(data.giftType);
 	const diamonds = Number(data?.diamondCount) || 1;
 	logGift(giftId, giftName);
+	battles.noteGift(data); // (así se sabe cuál de los dos streamers de una batalla eres tú)
 
 	let count;
 	if (giftType !== undefined && giftType !== 1) {
@@ -194,6 +195,35 @@ function handleViewers(data) {
 	pushEvent(pendingViewers);
 }
 
+// ===== CAPTURA DE BATALLAS (para preparar el modo batalla) =====
+// Guarda tal cual en batallas_capturadas.jsonl todo lo que Tikfinity mande de
+// las batallas de TikTok (linkMicBattle, linkMicArmies...), y anota una vez
+// cada tipo de evento nuevo que llegue, para saber qué datos hay disponibles.
+const BATTLE_CAPTURE_FILE = path.join(__dirname, 'batallas_capturadas.jsonl');
+const BATTLE_CAPTURE_MAX = 5 * 1024 * 1024;
+const seenEvents = new Set();
+
+function noteOtherEvent(name, raw) {
+	name = String(name || '?');
+	const isBattle = /linkmic|battle|armies|pk/i.test(name);
+	if (!seenEvents.has(name)) {
+		seenEvents.add(name);
+		console.log(isBattle ? `⚔️ Evento de batalla recibido: ${name} (se guarda en batallas_capturadas.jsonl)` : `ℹ️ Tikfinity envía también: ${name}`);
+	}
+	if (!isBattle) return;
+	try {
+		const size = fs.existsSync(BATTLE_CAPTURE_FILE) ? fs.statSync(BATTLE_CAPTURE_FILE).size : 0;
+		if (size < BATTLE_CAPTURE_MAX) {
+			fs.appendFileSync(BATTLE_CAPTURE_FILE, JSON.stringify({ at: new Date().toISOString(), raw: raw.toString() }) + '\n');
+		}
+	} catch (err) {}
+}
+
+// ===== MODO BATALLA (batallas de TikTok entre streamers, ver batalla.js) =====
+const { createBattles } = require('./batalla');
+const battles = createBattles({ pushEvent, getSettings: () => savedSettings });
+const BATTLE_EVENTS = new Set(['linkMicBattle', 'linkMicArmies', 'linkMicBattlePunishFinish']);
+
 // ===== CONEXIÓN A TIKFINITY (local) =====
 let socket = null;
 let reconnectTimer = null;
@@ -239,6 +269,14 @@ function connectToTikfinity() {
 				console.log(data.isLive ? '🔴 El live empezó' : '⚫ El live terminó');
 				break;
 			default:
+				noteOtherEvent(message.event, raw);
+				if (BATTLE_EVENTS.has(message.event)) {
+					try {
+						battles.handle(message.event, data);
+					} catch (err) {
+						console.error('⚠️ Error leyendo la batalla:', err.message);
+					}
+				}
 				break;
 		}
 	});
@@ -420,6 +458,7 @@ const ADMIN_ACTIONS = new Set([
 	'simJoin', 'simBots', 'simGift', 'simLikes', 'simFollow', 'testEntrance', 'rain', 'fury', 'hearts',
 	'healAll', 'chargeAll', 'koRandom', 'resetFighters', 'resetQueue', 'resetScore', 'resetAll',
 	'setSetting', 'resetSettings', 'announce',
+	'simBattleStart', 'simBattlePoints', 'simBattleGift', 'simBattleEnd', 'endBattle',
 ]);
 
 app.post('/admin', checkAccess, (req, res) => {
@@ -437,6 +476,28 @@ app.post('/admin', checkAccess, (req, res) => {
 	pushEvent(event);
 	console.log(`🛠️ [panel] ${body.action}`);
 	res.json({ ok: true });
+});
+
+// ----- Modo batalla -----
+// Estado de la batalla actual (para el panel)
+app.get('/battle/status', checkAccess, (req, res) => {
+	res.json(battles.status());
+});
+
+// Pruebas sin live: { action: 'start' | 'points' | 'end', side: 'me' | 'rival', amount }
+// (pasan por el mismo lector que las batallas reales de Tikfinity)
+app.post('/battle/sim', checkAccess, (req, res) => {
+	const body = req.body || {};
+	const ok = battles.simulate(String(body.action || ''), body);
+	if (!ok) return res.status(400).json({ error: 'No hay una batalla de prueba en curso (pulsa "Empezar batalla de prueba")' });
+	res.json({ ok: true, battle: battles.status() });
+});
+
+// Terminar la batalla ya (por si TikTok no avisó): { winner: 'me' | 'rival' | 'tie' } o sin winner = por puntos
+app.post('/battle/end', checkAccess, (req, res) => {
+	const ok = battles.forceEnd(req.body && req.body.winner);
+	if (!ok) return res.status(400).json({ error: 'No hay ninguna batalla en curso' });
+	res.json({ ok: true, battle: battles.status() });
 });
 
 app.get('/admin/gift-log', checkAccess, (req, res) => {
