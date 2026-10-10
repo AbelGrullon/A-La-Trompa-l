@@ -1,11 +1,12 @@
 {
   "name": "tikfinity-roblox-bridge",
   "version": "1.0.0",
-  "description": "Bridge de A la trompa: lee el live de TikTok via Tikfinity (regalos, likes, seguidores) y se lo pasa al juego de Roblox",
+  "description": "Bridge de A la trompa: lee el live de TikTok via Tikfinity (regalos, likes, seguidores, batallas) y se lo pasa al juego de Roblox. Local (server.js) u online para varios streamers (online.js)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "token": "node server.js --token"
+    "token": "node server.js --token",
+    "online": "node online.js"
   },
   "dependencies": {
     "dotenv": "^16.4.5",

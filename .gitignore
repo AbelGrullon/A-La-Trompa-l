@@ -7,3 +7,8 @@ node_modules/
 *.rbxlx.lock
 *.tmp
 
+
+# Servidor online (VPS)
+datos_online/
+online.env
+batallas_capturadas.jsonl

@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Scripts de Linux (VPS): siempre con saltos de línea LF
+*.sh text eol=lf

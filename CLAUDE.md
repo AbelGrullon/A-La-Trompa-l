@@ -8,7 +8,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The project has two halves:
 
-1. **This folder:** a Node "bridge" (`server.js` + `panel.html`). It reads the live from **Tikfinity Desktop**'s local WebSocket (`ws://127.0.0.1:21213`) and exposes the events over HTTP.
+1. **This folder:** the Node side. It runs in one of two ways and both share the same per-streamer logic, `canal.js`:
+   - **Local bridge** (`server.js` + `panel.html`): reads the live from **Tikfinity Desktop**'s local WebSocket (`ws://127.0.0.1:21213`) on the streamer's PC and exposes the events over HTTP.
+   - **Online server** (`online.js`, for a VPS): many streamers, nothing to install. See "Online mode" below and `GUIA_ONLINE.md`.
 2. **The Roblox place** "A la trompa!" (placeId 77774451323374). **All game code lives only inside the place in Roblox Studio.** There are no `.lua` source files here, and Rojo is not used even though the plugin is installed. Read and edit it with the Roblox Studio MCP tools (`script_read`, `multi_edit`, `execute_luau`, `start_stop_play`, `get_console_output`, `screen_capture`). Changes only persist once the user saves or publishes the place in Studio.
 
 All comments, logs and UI text are in Spanish. Keep it that way.
@@ -19,6 +21,7 @@ All comments, logs and UI text are in Spanish. Keep it that way.
 npm install
 npm start            # node server.js → http://localhost:3000/panel (INICIAR_BRIDGE.bat does the same)
 npm run token        # change the saved token (CAMBIAR_TOKEN.bat)
+npm run online       # node online.js → online server on :8080 (reads online.env; for the VPS)
 ```
 
 **Token flow (asked once, like A Correr).** On start, `ensureToken()` at the top of `server.js` checks `.env` for a valid `ACCESS_TOKEN` (6–64 chars of `A-Za-z0-9_-`, not the example value). If missing it opens the Windows Forms dialog `pedir_token.ps1` (type or generate a token; it saves it to `.env`; cancel exits). It falls back to a random token if PowerShell fails. After that nothing is asked again. The game never needs the token typed anywhere:
@@ -41,11 +44,20 @@ To exercise the Tikfinity parsing, point `TIKFINITY_URL` at a tiny fake `ws` ser
 ## Data flow (spans both halves)
 
 ```
-Tikfinity WS → server.js handlers → events[] queue
-   → Roblox Bridge module polls GET /events/pull every 1 s
-   → ArenaManager.handleEvent (gift | like | follow | viewers | admin)
-   → server state + HudEvent / FxEvent remotes → ArenaHUD / ArenaCamera on the client
+Tikfinity WS → canal.js handleTikfinity → events[] queue
+   (local: server.js connects to Tikfinity · online: the streamer's browser relays it to online.js)
+   → Roblox Bridge module polls GET /events/pull (local) or /game/pull (online) every 1 s
+   → ArenaManager.handleEvent (gift | like | follow | viewers | admin | battle*)
+   → server state + HudEvent / FxEvent remotes → ArenaHUD / BattleHUD / ArenaCamera on the client
 ```
+
+### Node modules
+
+- `canal.js`: everything for one streamer's live. Tikfinity parsing, the event queue (`pull`), settings (`settingsFile`), gift roles, admin commands (`ADMIN_ACTIONS`), gift log, battle capture file and `batalla.js`.
+- `regalos.js`: the gift catalog and roles, shared by all channels.
+- `server.js`: token flow + one channel + local Tikfinity socket + routes.
+- `online.js`: accounts + many channels + relay WebSocket + routes.
+- The panel routes are the same in both servers (`/admin`, `/gifts/roles`, `/battle/*`, `/admin/gift-log`, `/status`); only the auth header differs. So `panel.html` is one file for both.
 
 ### Bridge (`server.js`)
 
@@ -68,9 +80,35 @@ There is one command table: `COMMANDS` in `ArenaManager`. It is reached two ways
 
 Adding a command means touching four places:
 - the `COMMANDS` entry in ArenaManager
-- the `ADMIN_ACTIONS` whitelist in `server.js`
+- the `ADMIN_ACTIONS` whitelist in `canal.js`
 - a button in `DevPanel`
 - a button in `panel.html`
+
+## Online mode (VPS, `online.js`)
+
+- **Streamer flow.**
+  1. Open `https://DOMAIN/` and log in with @user + password; the first time creates the account.
+  2. Keep the tab open: the page connects to Tikfinity at `ws://localhost:21213` (changeable under "Avanzado") and relays `{t:"tf", m:<raw Tikfinity JSON>}` plus `{t:"estado", tikfinity}` heartbeats over `wss://DOMAIN/relay?key=`. Only gift/like/follow/social/roomUser/liveStatusChange and battle events are relayed; chat is not.
+  3. Press "▶ ABRIR EL JUEGO" (`https://www.roblox.com/games/start?placeId=PLACE_ID&launchData={"t":token}`).
+- **Accounts.** `datos_online/canales/<user>/cuenta.json`: scrypt password hash, `key` (panel, header `x-canal-key`), `token` (game, query `t=`) and `code` (6 digits, typed in-game). Each channel also has its `settings.json` and `batallas_capturadas.jsonl` there.
+  - `POST /api/code/new` rotates the token and the code.
+  - Rate limits: login, game link and admin commands are limited per IP or per user; the relay takes at most 300 msgs/s per channel.
+  - One relay per channel: a new tab closes the old one with code 4000.
+  - `POST /soporte/borrar` (header `x-admin-key` = `ADMIN_KEY`) deletes an account.
+- **Game routes.** `GET /game/link?user=&code=` → `{token}`. With the token, `GET /game/pull?t=` (also returns `user`) and `GET`/`POST /game/settings?t=`.
+- **Panel.** `GET /` serves `panel.html` with `"__ONLINE__"` replaced by `{placeId}`. That turns on the login overlay, the online bar (code, launch button, logout) and the relay code at the end of the script. The replacement hits the *first* occurrence, so never write that placeholder in a comment above it.
+- **Roblox side.**
+  - `Config.ONLINE_URL` (`""` = local bridge).
+  - `ServerScriptService.Arena.Bridge` handles both modes. In online mode it waits for a channel token before polling. It uses `RequestAsync`. On 401 it unlinks, so the connect screen comes back. In published games it filters TikTok names and announce text with `TextService` (cached, in parallel, "Espectador" on failure; skipped in Studio).
+  - `ServerScriptService.Arena.Online`: the first player is the server owner and gets `ArenaDev` (the place must use Max Players = 1). It links from `player:GetJoinData().LaunchData`, otherwise from DataStore `TrompaOnline_v1` (last link). It handles `DevCommand` `linkOnline {user, code}` / `unlinkOnline`.
+  - `StarterPlayerScripts.OnlineConnect` is the "Conecta tu TikTok" screen (DisplayOrder 210). `ModeSelect` waits until `State.OnlineLinked`.
+  - State attributes: `OnlineMode`, `OnlineUrl`, `OnlineLinked`, `OnlineUser`.
+- **Deploy.** `vps/instalar.sh DOMAIN EMAIL` (Ubuntu): installs Node 20, rsyncs the app to `/opt/trompa` (keeping `datos_online/` and `online.env`), sets up the systemd service `trompa`, nginx (WebSocket upgrade, `proxy_read_timeout 3600s`), ufw and certbot. Re-run it to update. `.sh` files must stay LF (`.gitattributes`).
+- **Local test.**
+  1. Run `PORT=8080 DATA_DIR=<scratch> node online.js` and a fake Tikfinity `ws` server on 21299.
+  2. Open `http://localhost:8080`, log in, and set "Avanzado" to `ws://localhost:21299/`.
+  3. Set `Config.ONLINE_URL = "http://localhost:8080"` temporarily (Studio can reach localhost) and link in-game with the panel code.
+  4. Revert `ONLINE_URL` to `""` afterwards.
 
 ## Roblox place layout (things that need several scripts to understand)
 
