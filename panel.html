@@ -160,6 +160,40 @@
 	#picker .catalog small { color: var(--muted); font-weight: 500; }
 	#picker .catalog button.used { opacity: .45; }
 	#picker .catalog button.mine { outline: 2px solid var(--good); }
+	/* ===== MODO ONLINE ===== */
+	#login {
+		position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;
+		background: radial-gradient(circle at 30% 20%, #3a1630, transparent 60%), radial-gradient(circle at 70% 80%, #2a1650, transparent 60%), #08080d;
+		padding: 16px;
+	}
+	#login[hidden], #onlineBar[hidden] { display: none; }
+	.login-card {
+		width: 100%; max-width: 440px; background: var(--card); border: 1px solid var(--line); border-radius: 22px;
+		padding: 26px 24px; box-shadow: 0 20px 60px #000a;
+	}
+	.login-card h1 { font-size: 28px; text-align: center; margin-bottom: 6px; }
+	.login-card .sub { text-align: center; color: var(--muted); margin: 0 0 18px; font-size: 14px; }
+	.login-card label { margin-top: 12px; }
+	.login-card input { width: 100%; font-size: 17px; padding: 12px 14px; }
+	.login-card button.big { width: 100%; margin-top: 18px; font-size: 18px; padding: 14px; }
+	.login-card ol { color: var(--muted); font-size: 13px; padding-left: 18px; margin: 16px 0 0; line-height: 1.6; }
+	.login-card details { margin-top: 14px; color: var(--muted); font-size: 12px; }
+	#loginError { color: var(--bad); min-height: 20px; margin-top: 10px; font-size: 14px; text-align: center; }
+	.online-bar {
+		max-width: 1400px; margin: 0 auto 18px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+		background: linear-gradient(90deg, #2a1d06, #1a1424 50%, #261034); border: 1px solid #5a4520;
+		border-radius: 16px; padding: 12px 16px;
+	}
+	.online-bar .who { font-weight: 800; font-size: 16px; }
+	.online-bar .code { font-size: 14px; color: var(--muted); }
+	.online-bar .code b { font-size: 22px; letter-spacing: 3px; color: var(--hero); font-family: Consolas, monospace; }
+	.online-bar .launch {
+		background: linear-gradient(90deg, #ffcd28, #ff7a3c); color: #1a1004; font-weight: 900; font-size: 16px;
+		padding: 11px 18px; border-radius: 12px; text-decoration: none; animation: latido 1.6s infinite;
+	}
+	@keyframes latido { 0% { box-shadow: 0 0 0 0 #ffcd2870; } 70% { box-shadow: 0 0 0 14px #ffcd2800; } 100% { box-shadow: 0 0 0 0 #ffcd2800; } }
+	.online-bar .spacer { flex: 1; }
+	.online-bar .warn { width: 100%; font-size: 12px; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -171,6 +205,41 @@
 			<input type="password" id="token" placeholder="ACCESS_TOKEN" style="width:190px" />
 		</div>
 	</header>
+
+	<!-- MODO ONLINE: entrar con el @usuario de TikTok (solo en el servidor online) -->
+	<div id="login" hidden>
+		<div class="login-card">
+			<h1>🥊 ¡A LA TROMPA!</h1>
+			<p class="sub">Conecta tu TikTok con el juego, sin instalar nada.</p>
+			<label for="loginUser">Tu @usuario de TikTok</label>
+			<input id="loginUser" placeholder="@tu_usuario" autocomplete="username" autocapitalize="off" spellcheck="false" />
+			<label for="loginPass">Contraseña (la primera vez la eliges tú)</label>
+			<input id="loginPass" type="password" placeholder="mínimo 4 caracteres" autocomplete="current-password" />
+			<button class="go big" id="loginBtn">🔗 CONECTAR</button>
+			<div id="loginError"></div>
+			<ol>
+				<li>Abre <b>Tikfinity</b> y conéctalo a tu directo.</li>
+				<li>Entra aquí con tu @usuario y pulsa <b>Conectar</b>.</li>
+				<li>Pulsa <b>▶ ABRIR EL JUEGO</b>. ¡Listo! Deja esta pestaña abierta durante el directo.</li>
+			</ol>
+			<details>
+				<summary>Avanzado</summary>
+				<label for="tfUrl">Dirección de Tikfinity</label>
+				<input id="tfUrl" placeholder="ws://localhost:21213/" />
+			</details>
+		</div>
+	</div>
+	<div class="online-bar" id="onlineBar" hidden>
+		<span class="who" id="onlineWho">@usuario</span>
+		<span class="pill" id="pillRelay">Servidor …</span>
+		<span class="code">Código para el juego: <b id="onlineCode">------</b></span>
+		<button id="copyCode">📋 Copiar</button>
+		<button id="newCode" title="El código y el enlace anteriores dejan de valer">↻ Nuevo código</button>
+		<span class="spacer"></span>
+		<a class="launch" id="launchBtn" href="#" target="_blank" rel="noopener">▶ ABRIR EL JUEGO</a>
+		<button class="danger" id="logoutBtn">Salir</button>
+		<div class="warn">⚠️ Deja esta pestaña abierta durante el directo: es la que lleva los regalos, likes y batallas de tu Tikfinity al juego. Si entras al juego sin el botón, escribe allí tu @usuario y el código.</div>
+	</div>
 
 	<div class="grid">
 		<div class="card">
@@ -395,6 +464,13 @@
 		'👑 ÉLITE Y DEFINITIVO ENTRAN AL RING CON ENTRADA DE CINE',
 	];
 
+	// El servidor online cambia el texto de abajo por { placeId }; en el bridge local se queda así (null)
+	const ONLINE = (() => {
+		const injected = "__ONLINE__";
+		return typeof injected === 'object' ? injected : null;
+	})();
+	let session = null; // { user, key, code, launchUrl } (solo online)
+
 	const tokenInput = document.getElementById('token');
 	const params = new URLSearchParams(location.search);
 	// El bridge pone aquí el token guardado cuando el panel se abre desde este PC (así no se escribe nunca)
@@ -424,7 +500,15 @@
 	}
 
 	function headers() {
+		if (ONLINE) {
+			return { 'Content-Type': 'application/json', 'x-canal-key': session ? session.key : '' };
+		}
 		return { 'Content-Type': 'application/json', 'x-access-token': tokenInput.value.trim() };
+	}
+
+	// (en modo online, nada se pide hasta entrar)
+	function ready() {
+		return !ONLINE || session !== null;
 	}
 
 	async function admin(body) {
@@ -571,6 +655,7 @@
 	});
 
 	async function loadRoles() {
+		if (!ready()) return;
 		try {
 			const res = await fetch('/gifts/roles', { headers: headers() });
 			const data = await res.json();
@@ -681,8 +766,9 @@
 
 	// Estado (cada 2 s)
 	async function refreshStatus() {
+		if (!ready()) return;
 		try {
-			const res = await fetch('/status');
+			const res = await fetch('/status', { headers: headers() });
 			const data = await res.json();
 			const tik = document.getElementById('pillTik');
 			const rob = document.getElementById('pillRoblox');
@@ -733,6 +819,7 @@
 	});
 
 	async function refreshBattle() {
+		if (!ready()) return;
 		try {
 			const res = await fetch('/battle/status', { headers: headers() });
 			if (!res.ok) return;
@@ -748,6 +835,205 @@
 	}
 	refreshBattle();
 	setInterval(refreshBattle, 2000);
+
+	// ===== MODO ONLINE: entrar y retransmitir Tikfinity al servidor =====
+	// Esta página corre en el PC del streamer, junto a Tikfinity: lee su WebSocket
+	// local y manda al servidor solo lo que usa el juego (el chat no viaja).
+	const relay = { tf: null, srv: null, tfUp: false, srvUp: false, stopped: true };
+	const RELAY_EVENTS = new Set(['gift', 'like', 'follow', 'social', 'roomUser', 'liveStatusChange']);
+
+	function tikfinityUrl() {
+		let saved = '';
+		try { saved = localStorage.getItem('trompaTikfinity') || ''; } catch (e) {}
+		return saved || 'ws://localhost:21213/';
+	}
+
+	// (si el servidor aún no está conectado, se guardan un momento: como mucho 300)
+	const pendingPackets = [];
+	function sendServer(packet) {
+		if (relay.srv && relay.srv.readyState === 1) {
+			while (pendingPackets.length > 0) relay.srv.send(pendingPackets.shift());
+			relay.srv.send(JSON.stringify(packet));
+		} else if (packet.t === 'tf' && pendingPackets.length < 300) {
+			pendingPackets.push(JSON.stringify(packet));
+		}
+	}
+
+	function renderRelay() {
+		const pill = document.getElementById('pillRelay');
+		pill.textContent = relay.srvUp ? '🟢 Servidor' : '🔴 Servidor';
+		pill.className = 'pill ' + (relay.srvUp ? 'on' : 'off');
+		const tik = document.getElementById('pillTik');
+		if (!relay.tfUp) {
+			tik.textContent = '🔴 Tikfinity (¿está abierto?)';
+			tik.className = 'pill off';
+		}
+	}
+
+	function connectTikfinity() {
+		if (relay.stopped) return;
+		let ws;
+		try {
+			ws = new WebSocket(tikfinityUrl());
+		} catch (err) {
+			setTimeout(connectTikfinity, 3000);
+			return;
+		}
+		relay.tf = ws;
+		ws.onopen = () => {
+			relay.tfUp = true;
+			sendServer({ t: 'estado', tikfinity: true });
+			renderRelay();
+		};
+		ws.onmessage = (e) => {
+			if (typeof e.data !== 'string') return;
+			let name;
+			try { name = JSON.parse(e.data).event; } catch (err) { return; }
+			if (RELAY_EVENTS.has(name) || /linkmic|battle|armies|pk/i.test(String(name))) {
+				sendServer({ t: 'tf', m: e.data });
+			}
+		};
+		ws.onclose = () => {
+			relay.tfUp = false;
+			sendServer({ t: 'estado', tikfinity: false });
+			renderRelay();
+			if (!relay.stopped) setTimeout(connectTikfinity, 3000);
+		};
+		ws.onerror = () => {};
+	}
+
+	function connectServer() {
+		if (relay.stopped || !session) return;
+		const url = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/relay?key=' + encodeURIComponent(session.key);
+		const ws = new WebSocket(url);
+		relay.srv = ws;
+		ws.onopen = () => {
+			relay.srvUp = true;
+			sendServer({ t: 'estado', tikfinity: relay.tfUp });
+			renderRelay();
+		};
+		ws.onclose = (e) => {
+			relay.srvUp = false;
+			renderRelay();
+			if (e.code === 4000) {
+				relay.stopped = true;
+				toast('Abriste el panel en otra pestaña: esta se desconectó', false);
+				return;
+			}
+			if (!relay.stopped) setTimeout(connectServer, 3000);
+		};
+		ws.onerror = () => {};
+	}
+
+	// cada 10 s se recuerda el estado (si no, el servidor da a Tikfinity por caído)
+	setInterval(() => sendServer({ t: 'estado', tikfinity: relay.tfUp }), 10000);
+
+	function startRelay() {
+		relay.stopped = false;
+		connectTikfinity();
+		connectServer();
+	}
+
+	function stopRelay() {
+		relay.stopped = true;
+		try { relay.tf && relay.tf.close(); } catch (e) {}
+		try { relay.srv && relay.srv.close(); } catch (e) {}
+	}
+
+	function showSession(data) {
+		session = { user: data.user, key: data.key, code: data.code, launchUrl: data.launchUrl };
+		try { localStorage.setItem('trompaSession', JSON.stringify({ user: session.user, key: session.key })); } catch (e) {}
+		document.getElementById('login').hidden = true;
+		document.getElementById('onlineBar').hidden = false;
+		document.getElementById('onlineWho').textContent = '@' + session.user;
+		document.getElementById('onlineCode').textContent = session.code;
+		document.getElementById('launchBtn').href = session.launchUrl;
+		document.getElementById('simName').value = session.user;
+	}
+
+	function afterLogin() {
+		startRelay();
+		loadRoles();
+		refreshStatus();
+		refreshBattle();
+	}
+
+	async function enterOnline() {
+		document.getElementById('token').style.display = 'none';
+		let saved = null;
+		try { saved = JSON.parse(localStorage.getItem('trompaSession') || 'null'); } catch (e) {}
+		if (saved && saved.key) {
+			try {
+				const res = await fetch('/api/me', { headers: { 'x-canal-key': saved.key } });
+				if (res.ok) {
+					showSession(await res.json());
+					afterLogin();
+					return;
+				}
+			} catch (err) {}
+		}
+		document.getElementById('login').hidden = false;
+		if (saved && saved.user) document.getElementById('loginUser').value = '@' + saved.user;
+		document.getElementById('tfUrl').value = tikfinityUrl() === 'ws://localhost:21213/' ? '' : tikfinityUrl();
+	}
+
+	async function doLogin() {
+		const errorEl = document.getElementById('loginError');
+		errorEl.textContent = '';
+		const user = document.getElementById('loginUser').value.trim();
+		const password = document.getElementById('loginPass').value;
+		const customTf = document.getElementById('tfUrl').value.trim();
+		try {
+			if (customTf) localStorage.setItem('trompaTikfinity', customTf);
+			else localStorage.removeItem('trompaTikfinity');
+		} catch (e) {}
+		try {
+			const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user, password }) });
+			const data = await res.json();
+			if (!res.ok) {
+				errorEl.textContent = data.error || 'No se pudo entrar';
+				return;
+			}
+			showSession(data);
+			afterLogin();
+			toast('✅ Conectado como @' + data.user);
+		} catch (err) {
+			errorEl.textContent = 'No se pudo conectar con el servidor';
+		}
+	}
+
+	if (ONLINE) {
+		document.getElementById('loginBtn').addEventListener('click', doLogin);
+		document.getElementById('loginPass').addEventListener('keydown', (e) => {
+			if (e.key === 'Enter') doLogin();
+		});
+		document.getElementById('copyCode').addEventListener('click', () => {
+			navigator.clipboard.writeText(session ? session.code : '').then(() => toast('📋 Código copiado'));
+		});
+		document.getElementById('newCode').addEventListener('click', async () => {
+			if (!confirm('¿Crear un código nuevo? El juego tendrá que volver a conectarse con el código o el botón nuevo.')) return;
+			const res = await fetch('/api/code/new', { method: 'POST', headers: headers() });
+			if (res.ok) {
+				showSession(await res.json());
+				toast('↻ Código nuevo listo');
+			}
+		});
+		document.getElementById('logoutBtn').addEventListener('click', () => {
+			stopRelay();
+			session = null;
+			try { localStorage.removeItem('trompaSession'); } catch (e) {}
+			document.getElementById('onlineBar').hidden = true;
+			document.getElementById('login').hidden = false;
+		});
+		// avisar antes de cerrar la pestaña en pleno directo
+		window.addEventListener('beforeunload', (e) => {
+			if (session && relay.tfUp) {
+				e.preventDefault();
+				e.returnValue = '';
+			}
+		});
+		enterOnline();
+	}
 </script>
 </body>
 </html>
