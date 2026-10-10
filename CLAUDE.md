@@ -124,6 +124,24 @@ Adding a command means touching four places:
 - Test: dev panel → Eventos / ⚡ ACCIONES → 🎬 Entrada Élite / Definitiva (`testEntrance {kind}`), also in panel.html. `screen_capture` latency is irregular: poll `State.CinematicActive` from the Client datamodel, wait the wanted seconds, then capture.
 - The camera occlusion raycast must ignore `Workspace.ArenaVFXLocal` (client VFX), or ground cracks pull the camera onto the fighter.
 
+## Battle mode (TikTok live battles between two streamers)
+
+- **Mode.** Setting `GameMode` = `Solo` | `Batalla`. `StarterPlayerScripts.ModeSelect` shows a start menu to the streamer (ArenaDev only) and auto-picks the saved mode after 20 s. Also switchable in the dev panel (⚔ Batalla tab) and panel.html. Each streamer runs their own game + bridge; no network sync is needed because TikTok gives both rooms the same battle points.
+- **Bridge (`batalla.js`).** Tikfinity events `linkMicBattle` (start), `linkMicArmies` (points per host) and `linkMicBattlePunishFinish` (end) become game events `battleStart {id, me, rival, duration}`, `battlePoints {id, me, rival}` (running totals) and `battleEnd {id, me, rival, winner}`. Both known payload shapes are parsed (TikTok-Live-Connector 1.x `battleUsers`/`battleArmies`, and `anchorInfo`/`battleItems`/`battleGroups`). End = `battleStatus` changes, punish-finish, `battleSetting.duration` elapsed, a 6 min fallback, or `POST /battle/end`.
+  - "Me" = setting `BattleMe` (@user), else the `receiverUserId` of this room's gifts, else the first host. `BattleSwap` flips sides.
+  - **The real payload format is unverified.** Every battle event is also appended raw to `batallas_capturadas.jsonl` (max 5 MB), and new Tikfinity event names are logged once. Check that file after the first real battle and adjust `batalla.js`.
+  - Test without a live: `POST /battle/sim {action: start|points|end, side, amount}` (fake 1.x-shaped messages through the same parser), `GET /battle/status`, panel.html card "⚔️ Modo batalla".
+- **Game (`ArenaManager`, section `MODO BATALLA`).** Everything lives in the `Battle` table, because the script is close to Luau's 200-local limit (~165 top-level locals). Don't add new top-level locals there; add fields to `Battle` instead.
+  - `Battle.start` clears the ring (fighters go back to the front of the lineup), spawns two champions (`BattleFighter` attribute, `busy = "battle"`; me = hero/gold, rival = villain/purple) and pauses normal pairing and filling while `Battle.current` exists.
+  - Point deltas queue hits (`Battle.strike`). Damage never takes a champion below `Battle.MIN_HEALTH` (8%) before the end.
+  - Power levels at `POWER_STEPS` (100/1k/5k/20k) raise `DamageMultiplier` (bigger client aura) and add Fire/Smoke instances.
+  - This room's gifts during a battle are special attacks for "me" (`Battle.gift`, before `handleGift`). The attack is picked by the gift's level in the gift editor, or by coins if the gift has no role. Their points are absorbed so they don't hit twice.
+  - `Battle.ended` → `Battle.runFinish`: both roots are anchored and `FxEvent("finisher", {winner, loser, from, to, loserAt, facing, rootHeight, duration, impact})` is fired. `EntranceCinematics` draws the letterbox, banner and the winner's dash (moved locally); `ArenaCamera.finisherFrame` plays the shots. At `FINISHER_IMPACT` the loser is unanchored, `SetNetworkOwner(nil)`, `knockOut`, and **every BasePart** gets a launch velocity: after unanchoring, Roblox handed it to the client and impulses on the root alone did nothing. Timings must match in those three scripts.
+  - Tie: no KO. After the end, `Battle.finish` fades the champions out and normal play resumes.
+- **HUD.** Section `Battle` (points bar; replaces the score while active, bottom center in horizontal, top in vertical) and `BattleWaiting` pill in Batalla mode without a battle. Driven by `hud("battle", Battle.payload())` + snapshot.
+- **Test commands:** `simBattleStart`, `simBattlePoints {side, amount}`, `simBattleGift {level 1–6}`, `simBattleEnd {winner?}` / `endBattle` (dev panel ⚔ Batalla tab, ⚡ ACCIONES, panel.html).
+- `screen_capture` coordinates are the screenshot's (scaled); `user_mouse_input` uses GUI `AbsolutePosition` coordinates (e.g. viewport 1163×672 vs capture 1454×840).
+
 ## Constraints and gotchas
 
 - **Place properties.** `Workspace.StreamingEnabled` must stay `false` and `Players.CharacterAutoLoads` `false`. The streamer has no character, so with streaming the client would not receive the ring or the NPCs.
