@@ -138,7 +138,17 @@ Adding a command means touching four places:
   - This room's gifts during a battle are special attacks for "me" (`Battle.gift`, before `handleGift`). The attack is picked by the gift's level in the gift editor, or by coins if the gift has no role. Their points are absorbed so they don't hit twice.
   - `Battle.ended` → `Battle.runFinish`: both roots are anchored and `FxEvent("finisher", {winner, loser, from, to, loserAt, facing, rootHeight, duration, impact})` is fired. `EntranceCinematics` draws the letterbox, banner and the winner's dash (moved locally); `ArenaCamera.finisherFrame` plays the shots. At `FINISHER_IMPACT` the loser is unanchored, `SetNetworkOwner(nil)`, `knockOut`, and **every BasePart** gets a launch velocity: after unanchoring, Roblox handed it to the client and impulses on the root alone did nothing. Timings must match in those three scripts.
   - Tie: no KO. After the end, `Battle.finish` fades the champions out and normal play resumes.
-- **HUD.** Section `Battle` (points bar; replaces the score while active, bottom center in horizontal, top in vertical) and `BattleWaiting` pill in Batalla mode without a battle. Driven by `hud("battle", Battle.payload())` + snapshot.
+- **HUD.** In Batalla mode ArenaHUD hides all its sections, its toasts, its announces during an active battle and the `ArenaHudEditor` gui. `StarterPlayerScripts.BattleHUD` (ScreenGui `ArenaBattleHUD`, DisplayOrder 11) takes over:
+  - Battle bar: crests, counting points, tug bar with a clash spark, a timer ring of 40 dots (countdown if TikTok gave a duration, elapsed time otherwise), power pips, combos, a crown for the leader, and a "¡REMONTADA!" callout.
+  - Guide (¿CÓMO AYUDAR?), the special-attacks list (built from the `Shared.GIFTS` levels), crowd energy, MVP (top 3 donors of this battle), event cards, the VS splash, the last-15 s banner, a 5→1 countdown and the result screen.
+  - Lobby panel when there is no battle.
+  - Columns switch to a compact one-phrase layout in vertical (`Guide.setCompact`, `Attacks.setCompact`).
+  - It hides itself while `State.CinematicActive` or `State.BattleFinisher` is set.
+  - Data: `hud("battle", Battle.payload())` (+ snapshot) and `hud("battleEvent", {kind = intro|special|gift|power|likes|crowd|follow})`.
+  - Shared constants: `Shared.BATTLE` (POWER_STEPS, ATTACKS names/emojis, COIN_LEVELS, FOLLOW_HEAL).
+  - The Gotham font has no "➜" glyph (it renders as a box); use "→".
+- **Likes and follows in a battle.** Likes also fill `b.crowd`; every `BattleLikeGoal` likes (setting, default 300) queue the `crowd` special ("¡GOLPE DEL PÚBLICO!") for "me". A follow heals "me" by `FOLLOW_HEAL` (10%). Neither gives TikTok points, so neither changes the winner.
+- To check the vertical battle HUD in a landscape Studio view, force `ArenaBattleHUD.Root` to 1080x1920 at scale `viewport.Y / 1920`, the same trick as for ArenaHUD.
 - **Test commands:** `simBattleStart`, `simBattlePoints {side, amount}`, `simBattleGift {level 1–6}`, `simBattleEnd {winner?}` / `endBattle` (dev panel ⚔ Batalla tab, ⚡ ACCIONES, panel.html).
 - `screen_capture` coordinates are the screenshot's (scaled); `user_mouse_input` uses GUI `AbsolutePosition` coordinates (e.g. viewport 1163×672 vs capture 1454×840).
 
