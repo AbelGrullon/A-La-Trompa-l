@@ -11,7 +11,7 @@ The project has two halves:
 1. **This folder:** the Node side. It runs in one of two ways and both share the same per-streamer logic, `canal.js`:
    - **Local bridge** (`server.js` + `panel.html`): reads the live from **Tikfinity Desktop**'s local WebSocket (`ws://127.0.0.1:21213`) on the streamer's PC and exposes the events over HTTP.
    - **Online server** (`online.js`, for a VPS): many streamers, nothing to install. See "Online mode" below and `GUIA_ONLINE.md`.
-2. **The Roblox place** "A la trompa!" (placeId 77774451323374). **All game code lives only inside the place in Roblox Studio.** There are no `.lua` source files here, and Rojo is not used even though the plugin is installed. Read and edit it with the Roblox Studio MCP tools (`script_read`, `multi_edit`, `execute_luau`, `start_stop_play`, `get_console_output`, `screen_capture`). Changes only persist once the user saves or publishes the place in Studio.
+2. **The Roblox place** "A la trompa!" (placeId 77774451323374). **All game code lives only inside the place in Roblox Studio.** `juego/` is a read-only *export* of the place's scripts for git history (Rojo naming: `.server.lua` / `.client.lua` / `.lua`, see `juego/LEEME.md`). Editing it does not change the game. Re-export it after changing the place (POST each script's Source from Studio to a tiny localhost receiver, skipping `ServerStorage` backups and Roblox default scripts). Rojo is not used even though the plugin is installed. Read and edit it with the Roblox Studio MCP tools (`script_read`, `multi_edit`, `execute_luau`, `start_stop_play`, `get_console_output`, `screen_capture`). Changes only persist once the user saves or publishes the place in Studio.
 
 All comments, logs and UI text are in Spanish. Keep it that way.
 
