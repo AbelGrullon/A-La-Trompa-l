@@ -112,7 +112,7 @@ Stop-Service W3SVC; Set-Service W3SVC -StartupType Disabled
    Si la dejas vacía (`""`), el juego sigue usando el bridge local de tu PC, como hasta ahora.
 2. En **Game Settings → Security**, activa **Allow HTTP Requests**.
 3. Si quieres probar en Studio que recuerda el enlace, activa también **Enable Studio Access to API Services**.
-4. **Un streamer por servidor:** en el Creator Dashboard (o Game Settings → Places), pon **Max Players = 1**. Así cada streamer tiene su propia arena.
+4. **Un streamer por servidor:** es automático. Quien entra a un servidor público se manda al momento a una **arena privada solo suya** ("🥊 Abriendo tu arena…"). Así dos streamers amigos nunca caen en el mismo servidor, aunque Roblox intente juntarlos. Esto solo funciona en el juego publicado: en Studio no hay teletransportes.
 5. **Publica** el juego y hazlo **público**: el botón "Abrir el juego" lo abre por su número (`PLACE_ID`).
 
 Si el número del juego cambia, ponlo en `online.env` del VPS (`PLACE_ID=...`) y reinicia con `systemctl restart trompa`.

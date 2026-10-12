@@ -133,8 +133,11 @@ function channelOf(user) {
 	return entry;
 }
 
+// (con la pestaña del panel en segundo plano, Chrome solo deja correr sus
+// temporizadores una vez por minuto: por eso el margen es de 3 minutos. Si la
+// pestaña se cierra o se cuelga, el ping del relay la da por caída antes.)
 function tikfinityOnline(entry) {
-	return Boolean(entry.relay) && entry.tikfinityUp && Date.now() - entry.tikfinityAt < 30000;
+	return Boolean(entry.relay) && entry.tikfinityUp && Date.now() - entry.tikfinityAt < 180000;
 }
 
 // Canales sin relay ni juego desde hace rato: fuera de memoria
@@ -365,6 +368,10 @@ server.on('upgrade', (req, socket, head) => {
 			} catch (err) {}
 		}
 		entry.relay = ws;
+		ws.isAlive = true;
+		ws.on('pong', () => {
+			ws.isAlive = true;
+		});
 		console.log(`🔗 @${user}: panel conectado (retransmitiendo Tikfinity)`);
 		let windowStart = Date.now();
 		let windowCount = 0;
@@ -394,6 +401,16 @@ server.on('upgrade', (req, socket, head) => {
 		});
 		const timer = setInterval(() => {
 			if (ws.readyState === WebSocket.OPEN) {
+				// ping cada 20 s (lo contesta el navegador aunque la pestaña esté en segundo plano)
+				if (Date.now() - (ws.pingAt || 0) > 20000) {
+					if (!ws.isAlive) {
+						ws.terminate();
+						return;
+					}
+					ws.isAlive = false;
+					ws.pingAt = Date.now();
+					ws.ping();
+				}
 				ws.send(JSON.stringify({ t: 'estado', roblox: entry.channel.robloxConnected(), pendientes: entry.channel.pendingCount() }));
 			}
 		}, 2000);
