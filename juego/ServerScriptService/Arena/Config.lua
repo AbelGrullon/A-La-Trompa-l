@@ -7,7 +7,7 @@ return {
 	-- Con una dirección aquí ("https://trompa.tudominio.com") el juego usa el
 	-- servidor online (online.js): los streamers no instalan nada, se conectan
 	-- desde el panel web. Vacío = el bridge local de este PC (abajo).
-	ONLINE_URL = "",
+	ONLINE_URL = "https://alatrompa.duckdns.org",
 
 	-- ===== BRIDGE LOCAL (Node + Tikfinity en este PC) =====
 	BRIDGE_URL = "http://localhost:3000",

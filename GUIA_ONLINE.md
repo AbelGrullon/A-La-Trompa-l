@@ -54,6 +54,55 @@ Al terminar muestra la **clave de soporte** (`ADMIN_KEY`): guárdala.
 
 Para comprobar que funciona: abre `https://trompa.tudominio.com` y debe salir la pantalla **CONECTAR**.
 
+## 3 (bis). Si tu VPS es Windows Server
+
+En vez de los pasos de Ubuntu del punto 3, usa `vps\instalar_windows.ps1`. Instala:
+
+- **Node.js**;
+- **Caddy**, que pone el HTTPS gratis automáticamente;
+- las reglas del firewall de Windows;
+- dos tareas programadas que arrancan todo al encender el servidor y lo reinician si se cierra.
+
+**1. En tu PC**, empaqueta la carpeta en un zip en el Escritorio (sin tus archivos privados):
+
+```powershell
+$esc = [Environment]::GetFolderPath('Desktop'); $tmp = Join-Path $env:TEMP 'trompa_paquete\A La Trompa'; robocopy "$esc\proyecto TIKTOK\A La Trompa" $tmp /E /XD node_modules .git juego backup_original datos_online /XF .env settings.json *.jsonl /NFL /NDL /NJH /NJS; Compress-Archive -Path $tmp -DestinationPath "$esc\trompa.zip" -Force
+```
+
+**2. Conéctate al VPS** con *Conexión a Escritorio remoto* (`mstsc`), con la IP y el usuario/contraseña de Contabo.
+
+**3. Pasa el zip.** Copia `trompa.zip` en tu PC y pégalo en el Escritorio del VPS (Ctrl+C / Ctrl+V funciona a través del escritorio remoto). Después, en el VPS: clic derecho → *Extraer todo…*
+
+**4. Instala.** En el VPS abre **PowerShell como administrador** (clic derecho → *Ejecutar como administrador*) y lanza el instalador. Cambia la ruta si lo extrajiste en otro sitio:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "$([Environment]::GetFolderPath('Desktop'))\trompa\A La Trompa\vps\instalar_windows.ps1" -Dominio alatrompa.duckdns.org -Correo tu@correo.com
+```
+
+Al terminar dice si el servidor y el HTTPS responden, y muestra la **ADMIN_KEY** (guárdala).
+
+**Si el VPS ya tiene otra web con Caddy** (por ejemplo `vensacatelo.com`), el instalador no pone un segundo Caddy, sino que **añade el dominio del juego al Caddy que ya tienes**:
+
+- antes hace una copia de seguridad de tu Caddyfile (`Caddyfile.antes-trompa-FECHA`);
+- valida la configuración nueva;
+- comprueba que sigan todas las webs que Caddy sirve ahora;
+- y la recarga sin cortar tu web.
+
+Si algo no cuadra, deja tu Caddyfile como estaba y te dice qué añadir a mano. Si el puerto 8080 lo usa tu otra web, el juego usa otro puerto libre (18080…).
+
+**Si el instalador dice que el puerto 80 está ocupado por IIS**, desactívalo y vuelve a lanzar el instalador:
+
+```powershell
+Stop-Service W3SVC; Set-Service W3SVC -StartupType Disabled
+```
+
+**Día a día en Windows Server:**
+
+- Logs: `C:\trompa\logs\servidor.log` y `C:\trompa\logs\caddy.log`.
+- Reiniciar: en el *Programador de tareas*, tareas **Trompa Servidor** y **Trompa HTTPS**. O reinicia el VPS.
+- Actualizar: copia el zip nuevo, extráelo y vuelve a lanzar el instalador. Las cuentas de los streamers (`C:\trompa\datos_online`) no se tocan.
+- La clave de soporte está en `C:\trompa\online.env`.
+
 ## 4. El juego en Roblox Studio
 
 1. En `ServerScriptService → Arena → Config` pon tu dirección:

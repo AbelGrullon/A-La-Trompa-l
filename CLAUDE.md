@@ -104,6 +104,22 @@ Adding a command means touching four places:
   - `StarterPlayerScripts.OnlineConnect` is the "Conecta tu TikTok" screen (DisplayOrder 210). `ModeSelect` waits until `State.OnlineLinked`.
   - State attributes: `OnlineMode`, `OnlineUrl`, `OnlineLinked`, `OnlineUser`.
 - **Deploy.** `vps/instalar.sh DOMAIN EMAIL` (Ubuntu): installs Node 20, rsyncs the app to `/opt/trompa` (keeping `datos_online/` and `online.env`), sets up the systemd service `trompa`, nginx (WebSocket upgrade, `proxy_read_timeout 3600s`), ufw and certbot. Re-run it to update. `.sh` files must stay LF (`.gitattributes`).
+- **Deploy on Windows Server** (the user's Contabo VPS is Windows Server): run `vps\instalar_windows.ps1 -Dominio -Correo` as admin. It:
+  - installs Node 20 (MSI from nodejs.org `latest-v20.x`);
+  - robocopies the app to `C:\trompa`, keeping `datos_online`, `online.env` and `logs`;
+  - installs Caddy to `C:\trompa-caddy` (automatic Let's Encrypt; `reverse_proxy 127.0.0.1:8080` handles WebSockets; certs under `XDG_DATA_HOME`);
+  - opens firewall rules for ports 80 and 443 and fails clearly if IIS holds port 80;
+  - registers two SYSTEM scheduled tasks, "Trompa Servidor" and "Trompa HTTPS", that run `vps\servicio_windows.ps1 -Que servidor|caddy` at startup. That script is a restart loop and logs to `C:\trompa\logs`.
+  - Both `.ps1` files must stay UTF-8 **with BOM** (Windows PowerShell 5.1).
+  - **The user's VPS already serves `vensacatelo.com` with its own Caddy.** When ports 80/443 belong to a foreign `caddy.exe`, the installer does not install a second Caddy. Instead it:
+    1. finds that Caddy's config (the `--config` in its command line, or the `Caddyfile` next to the exe);
+    2. backs it up as `Caddyfile.antes-trompa-<date>` and appends (or updates the port of) `DOMAIN { reverse_proxy 127.0.0.1:PORT }`;
+    3. runs `caddy validate`;
+    4. checks that every host the live config serves (`GET localhost:2019/config/`) is still present in `caddy adapt` of the new file;
+    5. only then runs `caddy reload`. On any failure it restores the backup and throws.
+  - If the app port (8080) is taken, it picks a free port in 18080–18150 and writes `PORT` to `online.env`.
+  - Native Caddy calls go through `cmd /c ... 2>&1`, because with `$ErrorActionPreference = 'Stop'` PowerShell 5.1 turns native stderr into terminating errors.
+  - The PowerShell tool in this environment blocks commands containing quoted absolute paths next to things it reads as removals. Put such test code in a `.ps1` file and run it with `-File`.
 - **Local test.**
   1. Run `PORT=8080 DATA_DIR=<scratch> node online.js` and a fake Tikfinity `ws` server on 21299.
   2. Open `http://localhost:8080`, log in, and set "Avanzado" to `ws://localhost:21299/`.

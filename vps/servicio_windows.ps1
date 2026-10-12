@@ -1,4 +1,4 @@
-# Mantiene vivo el servidor online (o Caddy) en Windows Server: si se cierra,
+﻿# Mantiene vivo el servidor online (o Caddy) en Windows Server: si se cierra,
 # lo vuelve a abrir a los 3 segundos. Lo lanzan las tareas programadas que crea
 # instalar_windows.ps1 al encender el servidor (no hace falta abrirlo a mano).
 #   -Que servidor : node online.js        (log: C:\trompa\logs\servidor.log)
